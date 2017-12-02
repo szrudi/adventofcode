@@ -1,4 +1,4 @@
-def get_input(filename, row=None, col=None):
+def get_input(filename, row=None, col=None, func=None):
     '''
     Returns the input files content splitted to rows/columns
 
@@ -12,7 +12,10 @@ def get_input(filename, row=None, col=None):
 
     output = []
     for line in file_data:
-        output.append(line.split())
+        line = line.split()
+        if (callable(func)):
+            line = list(map(func, line))
+        output.append(line)
 
     try:
         if (row is not None):
