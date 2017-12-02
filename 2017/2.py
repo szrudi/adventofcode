@@ -19,9 +19,9 @@ def get_row_div_checksum(row):
     for i in range(len(row)):
         for j in range(i + 1, len(row)):
             if (row[i] % row[j] == 0):
-                return int(row[i] / row[j])
+                return row[i] // row[j]
             elif (row[j] % row[i] == 0):
-                return int(row[j] / row[i])
+                return row[j] // row[i]
     return 0
 
 
