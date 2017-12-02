@@ -14,8 +14,9 @@ def main():
     # day1_puzzle = "91212129"
     sum = 0
     puzzle_len = len(day1_puzzle)
+    half_way = int(puzzle_len / 2)
     for i in range(puzzle_len):
-        next_index = (i + 1) % puzzle_len
+        next_index = (i + half_way) % puzzle_len
         if (day1_puzzle[i] == day1_puzzle[next_index]):
             sum += int(day1_puzzle[i])
     print(sum)
