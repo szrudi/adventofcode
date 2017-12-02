@@ -1,8 +1,29 @@
-def get_input(filename):
+def get_input(filename, row=None, col=None):
+    '''
+    Returns the input files content splitted to rows/columns
+
+    Parameters:
+     - :filename: Name of the file to open
+     - :row: the row to return (optional)
+     - :col: the column to return (optional)
+    '''
     with open(filename, "r") as file:
         file_data = file.readlines()
 
-    split_data = []
+    output = []
     for line in file_data:
-        split_data.append(line.split())
-    return split_data
+        output.append(line.split())
+
+    try:
+        if (row is not None):
+            output = output[row]
+            if (col is not None):
+                output = output[col]
+    except IndexError as e:
+        print("Unknown column or row:", e)
+    except TypeError as e:
+        print("Unknown column or row:", e)
+    else:
+        return output
+
+    return None
