@@ -2,10 +2,10 @@ def get_input(filename, row=None, col=None):
     '''
     Returns the input files content splitted to rows/columns
 
-    Parameters:
-     - :filename: Name of the file to open
-     - :row: the row to return (optional)
-     - :col: the column to return (optional)
+    Args:
+     - :filename: (str): Name of the file to open
+     - :row: (int): the row to return (optional)
+     - :col: (int): the column to return (optional)
     '''
     with open(filename, "r") as file:
         file_data = file.readlines()
