@@ -8,9 +8,12 @@ def main():
     index = 0
     try:
         while True:
-            # print(data)
-            data[index] += 1
-            index += data[index] - 1
+            offset = data[index]
+            if offset >= 3:
+                data[index] -= 1
+            else:
+                data[index] += 1
+            index += offset
             steps += 1
     except IndexError:
         pass
