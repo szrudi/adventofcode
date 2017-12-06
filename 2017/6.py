@@ -2,14 +2,20 @@ from common import get_input
 
 
 def main():
-    memory_banks = get_input("5_input", 1, func=int)
+    memory_banks = get_input("6_input", 1, func=int)
     print(memory_banks)
 
-    saved_states = []
-    while memory_banks not in saved_states:
-        saved_states.append(list(memory_banks))
+    saved_states = {}
+    cycle = 0
+
+    key = ",".join(map(str, memory_banks))
+    while key not in saved_states.keys():
+        saved_states[key] = cycle
         redistribute_blocks(memory_banks)
-    print(len(saved_states))
+        cycle += 1
+        key = ",".join(map(str, memory_banks))
+
+    print(len(saved_states), len(saved_states) - saved_states[key])
 
 
 def redistribute_blocks(memory_banks):
