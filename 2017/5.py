@@ -17,7 +17,6 @@ def main():
             steps += 1
     except IndexError:
         pass
-    print(data)
     print(steps)
 
 
