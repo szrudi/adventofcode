@@ -1,5 +1,4 @@
 
-
 def main():
     a = b = c = d = e = f = g = h = 0
     a = 1
@@ -17,12 +16,12 @@ def main():
 
 
 def isprime(b):
-    for d in range(2, b + 1):
-        for e in range(2, b + 1):
-            if (d * e) == b:
-                print("NOT prime: {} = {} * {}".format(b, d, e))
-                return False
+    for d in range(2, int(b**0.5) + 1):
+        if b % d == 0:
+            print("NOT prime: {} = {} * {}".format(b, d, b // d))
+            return False
     print("is prime {}".format(b))
+    return True
 
 
 if __name__ == '__main__':
