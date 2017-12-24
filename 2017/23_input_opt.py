@@ -1,21 +1,33 @@
 
-a = b = c = d = e = f = g = h = 0
-a = 1
-c = b = 99
 
-if a != 0:
-    c = b = (b * 100) + 100000
-    c += 17000
+def main():
+    a = b = c = d = e = f = g = h = 0
+    a = 1
+    c = b = 99
 
-for b in range(b, c+1, 17):
-    f = 1
+    if a != 0:
+        c = b = (b * 100) + 100000
+        c += 17000
+
+    for b in range(b, c + 1, 17):
+        print("Test " + str(b))
+        h += 0 if isprime(b) else 1
+
+    print(a, b, c, d, e, f, g, h)
+
+
+def isprime(b):
     for d in range(2, b + 1):
         for e in range(2, b + 1):
             if (d * e) == b:
-                f = 0
-        print("3:", a, b, c, d, e, f, g, h)
-    if f == 0:
-        h += 1
+                print("NOT prime: {} = {} * {}".format(b, d, e))
+                return False
+    print("is prime {}".format(b))
+
+
+if __name__ == '__main__':
+    main()
+
 
 # while True:
 #     f = 1
@@ -39,5 +51,3 @@ for b in range(b, c+1, 17):
 #         break
 #     b += 17
 #     print("1:", a, b, c, d, e, f, g, h)
-
-print(a, b, c, d, e, f, g, h)
