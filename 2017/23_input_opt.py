@@ -22,20 +22,24 @@ while True:
             e -= -1
             g = e
             g -= b
+            # print("4:",a, b, c, d, e, f, g, h)
             if g == 0:
                 break
         d -= -1
         g = d
-        d -= b
+        g -= b
+        print("3:", a, b, c, d, e, f, g, h)
         if g == 0:
             break
     if f == 0:
         h -= -1
     g = b
     g -= c
+    print("2:", a, b, c, d, e, f, g, h)
     if g == 0:
         break
     b -= -17
+    print("1:", a, b, c, d, e, f, g, h)
 
 
 print(a, b, c, d, e, f, g, h)
