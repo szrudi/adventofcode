@@ -1,5 +1,7 @@
 from common import get_input
 
+VERBOSE = False
+
 
 class Duet:
     def __init__(self, instructions):
@@ -13,7 +15,8 @@ class Duet:
         self.run_counter = 0
         try:
             while True:
-                print()
+                if VERBOSE:
+                    print()
                 self.run_counter += 1
 
                 inst = self.instructions[self.current_inst]
@@ -94,7 +97,8 @@ class Duet:
             self.log("Not jumping, register {} is {}".format(x, self.get_value(x)))
 
     def log(self, msg):
-        print(msg)
+        if VERBOSE:
+            print(msg)
 
 
 class Process(Duet):
@@ -113,7 +117,8 @@ class Process(Duet):
         Process.max_id = 0
 
     def log(self, msg):
-        print("P{}: {}".format(self.id, msg))
+        if VERBOSE:
+            print("P{}: {}".format(self.id, msg))
 
     def snd(self, x, _):
         ''' sends the value of X to the other program. '''
@@ -163,8 +168,10 @@ class Queue:
             return value
 
     def print_stat(self):
-        for id, data in self.queues.items():
-            print("    P{} received {} messages, queue: {}".format(id, data['msg_received'], data['queue']))
+        if VERBOSE:
+            for id, data in self.queues.items():
+                print("    P{} received {} messages, queue: {}"
+                      .format(id, data['msg_received'], data['queue']))
 
 
 def run_parallel(instructions):
