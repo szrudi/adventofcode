@@ -18,6 +18,9 @@ async function processLineByLine() {
         data.push(passport);
         buffer = [];
     }
+    if (buffer.length !== 0) {
+        data.push(buffer);
+    }
     return data;
 }
 
