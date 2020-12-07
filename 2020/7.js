@@ -39,16 +39,17 @@ processLineByLine().then(allRules => {
     // console.log(allRules);
     let goldCount = 0;
     for (let type of allRules.keys()) {
-        const foundGold = digDeeper(allRules, type);
+        const foundGold = findGold(allRules, type);
         if (foundGold) {
-            console.log("found gold in", type);
+            // console.log("found gold in", type);
             goldCount++;
         }
     }
-    console.log("all places: ", goldCount);
+    console.log("colors with gold: ", goldCount);
+    console.log("sum under gold: ", sumTree(allRules, "shiny gold"));
 });
 
-function digDeeper(allRules, type) {
+function findGold(allRules, type) {
     const quantities = allRules.get(type);
     let foundGold = false;
     for (let quantity of quantities) {
@@ -62,10 +63,26 @@ function digDeeper(allRules, type) {
                 // console.log("found a shiny gold");
                 return true;
             } else {
-                foundGold |= digDeeper(allRules, quantity['type']);
+                foundGold |= findGold(allRules, quantity['type']);
             }
         }
     }
     return foundGold;
+}
+
+function sumTree(allRules, type) {
+    const quantities = allRules.get(type);
+    let sum = 0;
+    for (let quantity of quantities) {
+        // console.log(quantity);
+        if (quantity['number'] !== 'no') {
+            sum +=
+                parseInt(quantity['number']) + (
+                    parseInt(quantity['number']) *
+                    sumTree(allRules, quantity['type'])
+                );
+        }
+    }
+    return sum;
 }
 
