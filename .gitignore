@@ -1,4 +1,3 @@
-
 # Created by https://www.gitignore.io/api/python,visualstudiocode
 
 ### Python ###
@@ -113,3 +112,4 @@ venv.bak/
 .history
 
 # End of https://www.gitignore.io/api/python,visualstudiocode
+/.idea/*
