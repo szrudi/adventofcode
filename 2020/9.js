@@ -9,41 +9,24 @@ async function processLineByLine() {
     const fileStream = fs.createReadStream(adventDay + '-input.txt');
     const rl = readline.createInterface({input: fileStream, crlfDelay: Infinity});
     let data = [];
-    let previousNumbers = [];
     for await (const line of rl) {
         const number = parseInt(line);
-        data.push({
-            number: number,
-            previousNumbers: [...previousNumbers],
-        });
-
-        previousNumbers.push(number);
-        if (previousNumbers.length > PREAMBLE_SIZE) {
-            previousNumbers.shift();
-        }
+        data.push(number);
     }
     return data;
 }
 
 processLineByLine().then(allNumbers => {
     // console.log(allNumbers);
-    let invalidNumber;
-    for (let i = PREAMBLE_SIZE; i < allNumbers.length; i++) {
-        const validNumbers = calculateValidNumbers(allNumbers[i].previousNumbers);
-        if (!validNumbers.includes(allNumbers[i].number)) {
-            invalidNumber = allNumbers[i].number;
-            break;
-        }
-    }
+    let invalidNumber = findInvalidNumber(allNumbers);
     console.log(invalidNumber);
 
-    const justNumbers = allNumbers.map(n => n.number);
-    for (let i = 0; i < justNumbers.length; i++) {
-        let numbers = [justNumbers[i]];
-        let sum = justNumbers[i];
-        for (let j = i + 1; j < justNumbers.length; j++) {
-            numbers.push(justNumbers[j]);
-            sum += justNumbers[j];
+    for (let [index, number1] of allNumbers.entries()) {
+        let numbers = [number1];
+        let sum = number1;
+        for (let number2 of allNumbers.slice(index+1)) {
+            numbers.push(number2);
+            sum += number2;
             if (sum === invalidNumber) {
                 const max = Math.max(...numbers);
                 const min = Math.min(...numbers);
@@ -51,8 +34,25 @@ processLineByLine().then(allNumbers => {
                 return;
             }
         }
+
     }
 });
+
+function findInvalidNumber(allNumbers) {
+    let checkedNumbers = [...allNumbers];
+    let previousNumbers = checkedNumbers.splice(0, PREAMBLE_SIZE);
+
+    for (let number of checkedNumbers) {
+        if (!calculateValidNumbers(previousNumbers).includes(number)) {
+            return number;
+        }
+        previousNumbers.push(number);
+        if (previousNumbers.length > PREAMBLE_SIZE) {
+            previousNumbers.shift();
+        }
+    }
+    return null;
+}
 
 function calculateValidNumbers(numbers) {
     let validNumbers = [];
