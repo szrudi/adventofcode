@@ -27,10 +27,29 @@ async function processLineByLine() {
 
 processLineByLine().then(allNumbers => {
     // console.log(allNumbers);
+    let invalidNumber;
     for (let i = PREAMBLE_SIZE; i < allNumbers.length; i++) {
         const validNumbers = calculateValidNumbers(allNumbers[i].previousNumbers);
         if (!validNumbers.includes(allNumbers[i].number)) {
-            console.log(allNumbers[i]);
+            invalidNumber = allNumbers[i].number;
+            break;
+        }
+    }
+    console.log(invalidNumber);
+
+    const justNumbers = allNumbers.map(n => n.number);
+    for (let i = 0; i < justNumbers.length; i++) {
+        let numbers = [justNumbers[i]];
+        let sum = justNumbers[i];
+        for (let j = i + 1; j < justNumbers.length; j++) {
+            numbers.push(justNumbers[j]);
+            sum += justNumbers[j];
+            if (sum === invalidNumber) {
+                const max = Math.max(...numbers);
+                const min = Math.min(...numbers);
+                console.log(min, "+", max, "=", min + max);
+                return;
+            }
         }
     }
 });
