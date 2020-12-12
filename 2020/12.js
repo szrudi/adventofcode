@@ -13,7 +13,7 @@ async function processLineByLine() {
     let data = [];
     for await (const line of rl) {
         data.push({
-            action: line.slice(0,1),
+            action: line.slice(0, 1),
             value: parseInt(line.slice(1)),
         });
     }
@@ -21,62 +21,89 @@ async function processLineByLine() {
 }
 
 processLineByLine().then(instructions => {
-    let ship = new Ship();
+    let ship = new Ship(0, 0, new WayPoint(10, 1));
 
     for (let instruction of instructions) {
-        // console.log("instruction:", instruction);
-        if (ship.isPossibleMoveAction(instruction.action)) {
-            ship.moveShip(instruction);
-        } else if (ship.isPossibleTurnAction(instruction.action)) {
-            ship.turnShip(instruction);
-        }
+        ship.execute(instruction);
     }
     console.log("ship:", ship);
     console.log("Distance:", Math.abs(ship.x) + Math.abs(ship.y));
 });
 
+/**
+ * @property {number}  x
+ * @property {number}  y
+ * @property {WayPoint}  wayPoint
+ */
 class Ship {
-    static #moveDirections = new Map([
-        ["E", {axis: "x", value: 1}],
-        ["N", {axis: "y", value: 1}],
-        ["W", {axis: "x", value: -1}],
-        ["S", {axis: "y", value: -1}],
-    ]);
-    static #possibleActions = new Map([
-        ["turn", new Set(["R", "L"])],
-        ["move", new Set(["F", ...Ship.#moveDirections.keys()])]
-    ]);
-    static #faceDirection = new Map([[0, "E"], [90, "N"], [180, "W"], [270, "S"]]);
-
     x = 0;
     y = 0;
-    #face = 0;
+    wayPoint;
 
-    moveShip = (instruction) => {
+    constructor(x, y, wayPoint) {
+        this.x = x;
+        this.y = y;
+        this.wayPoint = wayPoint;
+    }
+
+    execute(instruction) {
         if (instruction.action === "F") {
-            instruction.action = Ship.#faceDirection.get(this.#face);
+            this.move(instruction.value);
+        } else {
+            this.wayPoint.execute(instruction);
         }
-        const movement = Ship.#moveDirections.get(instruction.action);
-        this[movement.axis] += instruction.value * movement.value;
-    };
-
-    turnShip(instruction) {
-        let angleChange = instruction.value * (instruction.action === "L" ? 1 : -1);
-        this.#face = (this.#face + angleChange).mod(360);
     }
 
-    isPossibleMoveAction(action) {
-        return Ship.#isPossibleAction("move", action);
+    move(speed) {
+        this.x += this.wayPoint.x * speed;
+        this.y += this.wayPoint.y * speed;
+    }
+}
+
+class WayPoint {
+    static axisAndDirections = new Map([
+        ["E", {axis: "x", direction: 1}],
+        ["N", {axis: "y", direction: 1}],
+        ["W", {axis: "x", direction: -1}],
+        ["S", {axis: "y", direction: -1}],
+    ]);
+    static turnActions = new Set(["R", "L"]);
+    static moveActions = new Set(WayPoint.axisAndDirections.keys());
+
+    x;
+    y;
+
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
     }
 
-    isPossibleTurnAction(action) {
-        return Ship.#isPossibleAction("turn", action);
-    }
-
-    static #isPossibleAction(type, action) {
-        if (Ship.#possibleActions.has(type)) {
-            return Ship.#possibleActions.get(type).has(action);
+    execute(instruction) {
+        if (WayPoint.moveActions.has(instruction.action)) {
+            this.#move(instruction);
+        } else if (WayPoint.turnActions.has(instruction.action)) {
+            this.#turn(instruction);
         }
-        return false;
+    }
+
+    #move(instruction) {
+        const movement = WayPoint.axisAndDirections.get(instruction.action);
+        this[movement.axis] += instruction.value * movement.direction;
+    }
+
+    #turn(instruction) {
+        if (instruction.action === "R") {
+            instruction.action = "L";
+            instruction.value = 360 - instruction.value;
+        }
+        const turns = Math.floor(instruction.value / 90).mod(4);
+        for (let i = 0; i < turns; i++) {
+            const signX = Math.sign(this.y) > 0 ? -1 : 1;
+            const signY = Math.sign(this.x) < 0 ? -1 : 1;
+            [this.x, this.y] = [
+                signX * Math.abs(this.y),
+                signY * Math.abs(this.x)
+            ];
+        }
     }
 }
