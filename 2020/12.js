@@ -61,14 +61,14 @@ class Ship {
 }
 
 class WayPoint {
-    static axisAndDirections = new Map([
+    static #axisAndDirections = new Map([
         ["E", {axis: "x", direction: 1}],
         ["N", {axis: "y", direction: 1}],
         ["W", {axis: "x", direction: -1}],
         ["S", {axis: "y", direction: -1}],
     ]);
     static turnActions = new Set(["R", "L"]);
-    static moveActions = new Set(WayPoint.axisAndDirections.keys());
+    static moveActions = new Set(WayPoint.#axisAndDirections.keys());
 
     x;
     y;
@@ -87,7 +87,7 @@ class WayPoint {
     }
 
     #move(instruction) {
-        const movement = WayPoint.axisAndDirections.get(instruction.action);
+        const movement = WayPoint.#axisAndDirections.get(instruction.action);
         this[movement.axis] += instruction.value * movement.direction;
     }
 
