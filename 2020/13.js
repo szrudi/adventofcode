@@ -8,7 +8,7 @@ Number.prototype.mod = function (n) {
 
 async function processLineByLine() {
     const adventDay = path.basename(__filename).split(".")[0];
-    const fileStream = fs.createReadStream(adventDay + '-input1.txt');
+    const fileStream = fs.createReadStream(adventDay + '-input.txt');
     const rl = readline.createInterface({input: fileStream, crlfDelay: Infinity});
     let data = [];
     for await (const line of rl) {
@@ -23,9 +23,9 @@ async function processLineByLine() {
 processLineByLine().then(data => {
     // data.buses = [17,"x",13,19];
     // data.buses = [67, 7, 59, 61];
-    // data.buses = [67,"x",7,59,61];
-    // data.buses = [67,7,"x",59,61];
-    // data.buses = [1789,37,47,1889];
+    // data.buses = [67, "x", 7, 59, 61];
+    // data.buses = [67, 7, "x", 59, 61];
+    // data.buses = [1789, 37, 47, 1889];
 
     let arrivals = new Map();
     let constraints = new Map();
@@ -35,7 +35,7 @@ processLineByLine().then(data => {
         }
         bus = parseInt(bus);
         arrivals.set(bus, bus - data.departTime.mod(bus));
-        constraints.set(bus, index);
+        constraints.set(bus, {shift: index, firstValid: null, validCycle: null});
     }
     console.log("arrivals:", arrivals);
     console.log("constraints:", constraints);
@@ -44,24 +44,36 @@ processLineByLine().then(data => {
     onlyBuses.sort((a, b) => b - a);
     // console.log(onlyBuses);
 
-    const maxBus = Math.max(...onlyBuses);
     let time = 1;
-    while (time++) {
-        let currentTime = time * maxBus - constraints.get(maxBus);
-        if (time % 10000000 === 0) {
-            console.log(currentTime, time * maxBus, time);
-        }
-        if (isValid(currentTime, onlyBuses, constraints)) {
-            console.log(currentTime);
+    let jump = 1;
+    while (time) {
+        console.log(time)
+        if (isValid(time, onlyBuses, constraints)) {
+            console.log(time);
             break;
         }
+        jump = [...constraints.values()]
+            .reduce((max, busConstraint) => Math.max(max, busConstraint.validCycle), 1);
+        time += jump;
     }
 });
 
 function isValid(time, buses, constraints) {
     for (let bus of buses) {
-        if ((time + constraints.get(bus)).mod(bus) !== 0) {
-            return false
+        let busConstraint = constraints.get(bus);
+        let busDeparture = time + busConstraint.shift;
+        if (busDeparture.mod(bus) !== 0) {
+            return false;
+        } else {
+            // console.log("ok", bus, busDeparture / bus, busDeparture, busConstraint.firstValid);
+            if (busConstraint.validCycle !== null) {
+                continue;
+            }
+            if (busConstraint.firstValid === null) {
+                busConstraint.firstValid = busDeparture;
+            } else {
+                busConstraint.validCycle = busDeparture - busConstraint.firstValid;
+            }
         }
     }
     return true;
