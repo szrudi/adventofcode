@@ -19,12 +19,20 @@ processLineByLine().then(startingNumbers => {
     // startingNumbers = [2, 1, 3];
     // startingNumbers = [3, 1, 2];
 
-    let numbers = new Array(2020);
+    const countTo = 30000000;
+    let lastIndexesOf = new Map();
+    let numbers = new Array(countTo);
     numbers.splice(0, startingNumbers.length, ...startingNumbers);
 
-    for (let i = startingNumbers.length; i < numbers.length; i++) {
-        let lastIndexOf = numbers.lastIndexOf(numbers[i - 1], i - 2);
-        numbers[i] = lastIndexOf === -1 ? 0 : i - 1 - lastIndexOf;
+    for (let i = 0; i + 1 < countTo; i++) {
+        if (i % 1000000 === 0) {
+            console.log(i);
+        }
+        let lastIndexOf = lastIndexesOf.get(numbers[i]);
+        lastIndexesOf.set(numbers[i], i);
+        if (i + 1 >= startingNumbers.length) {
+            numbers[i + 1] = lastIndexOf === undefined ? 0 : i - lastIndexOf;
+        }
     }
     console.log(numbers.pop());
 });
