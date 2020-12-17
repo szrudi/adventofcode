@@ -17,7 +17,7 @@ async function processLineByLine() {
 processLineByLine().then(data => {
     let pocketUniverse = new Universe(data);
     for (let i = 0; i < 6; i++) {
-        // pocketUniverse.printActiveUniverse()
+        pocketUniverse.printActiveUniverse()
         pocketUniverse.generatePointsToCheck();
         // pocketUniverse.printPointsToCheck();
         pocketUniverse.nextCycle();
@@ -30,12 +30,12 @@ class Universe {
     /** @type {Map<string, Point>} */
     #activePoints = new Map();
     #pointsToCheck = new Map();
-    universeBounds = {xMin: 0, xMax: 0, yMin: 0, yMax: 0, zMin: 0, zMax: 0}
+    universeBounds = {xMin: 0, xMax: 0, yMin: 0, yMax: 0, zMin: 0, zMax: 0, wMin: 0, wMax: 0}
 
     constructor(data) {
         for (const [y, row] of data.entries()) {
             row.forEach((activeState, x) => {
-                    this.addToActive(new Point(x, y, 0, activeState));
+                    this.addToActive(new Point(x, y, 0, 0, activeState));
                 }
             )
         }
@@ -53,12 +53,10 @@ class Universe {
     }
 
     updateBounds(point) {
-        this.universeBounds.xMax = Math.max(this.universeBounds.xMax, point.x);
-        this.universeBounds.xMin = Math.min(this.universeBounds.xMin, point.x);
-        this.universeBounds.yMax = Math.max(this.universeBounds.yMax, point.y);
-        this.universeBounds.yMin = Math.min(this.universeBounds.yMin, point.y);
-        this.universeBounds.zMax = Math.max(this.universeBounds.zMax, point.z);
-        this.universeBounds.zMin = Math.min(this.universeBounds.zMin, point.z);
+        for (let axis of ["x", "y", "z", "w"]) {
+            this.universeBounds[axis + "Min"] = Math.min(this.universeBounds[axis + "Min"], point[axis]);
+            this.universeBounds[axis + "Max"] = Math.max(this.universeBounds[axis + "Max"], point[axis]);
+        }
     }
 
     printActiveUniverse() {
@@ -77,19 +75,21 @@ class Universe {
         console.log("****** " + (title + " ").padEnd(15, "*"))
         let xAxisHeader = ""
         for (let x = this.universeBounds.xMin; x <= this.universeBounds.xMax; x++) {
-            xAxisHeader += x.toString().padStart(3, " ");
+            xAxisHeader += x.toString().padStart(2, " ");
         }
-        for (let z = this.universeBounds.zMin; z <= this.universeBounds.zMax; z++) {
-            console.log((z + "z ").padStart(5, " ") + xAxisHeader);
-            for (let y = this.universeBounds.yMin; y <= this.universeBounds.yMax; y++) {
-                let line = y.toString().padStart(3, " ") + ": ";
-                for (let x = this.universeBounds.xMin; x <= this.universeBounds.xMax; x++) {
-                    let p = points.get(Point.joinCoordinates(x, y, z));
-                    line += ((p === undefined) ? "_" : (p.active ? "#" : ".")).padStart(3, " ")
+        for (let w = this.universeBounds.wMin; w <= this.universeBounds.wMax; w++) {
+            for (let z = this.universeBounds.zMin; z <= this.universeBounds.zMax; z++) {
+                console.log((z + "z " + w + "w ").padStart(5, " ") + xAxisHeader);
+                for (let y = this.universeBounds.yMin; y <= this.universeBounds.yMax; y++) {
+                    let line = y.toString().padStart(4, " ") + ": ";
+                    for (let x = this.universeBounds.xMin; x <= this.universeBounds.xMax; x++) {
+                        let p = points.get(Point.joinCoordinates(x, y, z, w));
+                        line += ((p === undefined) ? "_" : (p.active ? "#" : ".")).padStart(2, " ")
+                    }
+                    console.log(line);
                 }
-                console.log(line);
+                console.log("")
             }
-            console.log("")
         }
     }
 
@@ -133,9 +133,6 @@ class Universe {
 }
 
 class Point {
-    x;
-    y;
-    z;
     active = false;
     nextState = null;
     neighbourCoordinates = [];
@@ -152,18 +149,20 @@ class Point {
      * @param {number} x
      * @param {number} y y coordinate or state
      * @param {number} z
+     * @param {number} w
      * @param {boolean} state
      */
-    constructor(x, y, z, state = false) {
+    constructor(x, y, z, w, state = false) {
         this.x = x;
         this.y = y;
         this.z = z;
+        this.w = w;
         this.active = state;
         this.generateNeighbourCoordinates();
     }
 
     get coordinate() {
-        return Point.joinCoordinates(this.x, this.y, this.z);
+        return Point.joinCoordinates(this.x, this.y, this.z, this.w);
     }
 
     generateNeighbourCoordinates() {
@@ -171,12 +170,14 @@ class Point {
         for (let i = -1; i <= 1; i++) {
             for (let j = -1; j <= 1; j++) {
                 for (let k = -1; k <= 1; k++) {
-                    if (i === j && j === k && k === 0) {
-                        continue;
+                    for (let l = -1; l <= 1; l++) {
+                        if (i === j && j === k && k === l && l === 0) {
+                            continue;
+                        }
+                        this.neighbourCoordinates.push(
+                            Point.joinCoordinates(this.x + i, this.y + j, this.z + k, this.w + l)
+                        );
                     }
-                    this.neighbourCoordinates.push(
-                        Point.joinCoordinates(this.x + i, this.y + j, this.z + k)
-                    );
                 }
             }
         }
