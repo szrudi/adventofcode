@@ -26,7 +26,7 @@ async function processLineByLine() {
             // departure location: 49-920 or 932-950
             const capturingRegex = /(?<field>[\w ]+): (?<from1>\d+)-(?<to1>\d+) or (?<from2>\d+)-(?<to2>\d+)/;
             const found = line.match(capturingRegex);
-            Ticket.validators.push(new Validator(found.groups));
+            Validator.list.push(new Validator(found.groups));
         } else {
             //101,179,193,103,53,89,181,139,137,97,61,71,197,59,67,173,199,211,191,131
             const ticket = new Ticket(line.split(",").map(v => parseInt(v)));
@@ -40,62 +40,126 @@ async function processLineByLine() {
     return data;
 }
 
-processLineByLine().then(
+processLineByLine().then(data => {
+    // console.log(data);
+    let columnSearch = new TicketColumnSearch(data);
+    console.log(columnSearch.getSolution());
+});
+
+class TicketColumnSearch {
     /**
-     * @type {Object} data
+     * @param {Object} data
      * @param {Ticket} data.ticket
      * @param {Ticket[]} data.nearBy
      */
-    data => {
-        console.log(data);
+    constructor(data) {
+        this.myTicket = data.ticket;
+        this.nearByTickets = data.nearBy;
+    }
+
+    getSolution() {
+        let ticketScanningErrorRate = this.validateTickets();
+        console.log(ticketScanningErrorRate);
+
+        this.matchColumnsToValidators();
+        let columns = this.figureOutColumnNames();
+        console.log(columns);
+        return this.calculateSolution(columns);
+    }
+
+    validateTickets() {
         let ticketScanningErrorRate = 0;
-        for (let ticket of data.nearBy) {
-            let invalidValues = ticket.getInvalidValues();
+        for (let ticket of this.nearByTickets) {
+            let invalidValues = ticket.validate();
             if (invalidValues.length > 0) {
                 ticketScanningErrorRate += invalidValues.reduce((sum, v) => sum + v, 0);
             }
         }
-        console.log(ticketScanningErrorRate);
-    });
+        return ticketScanningErrorRate;
+    }
 
-/**
- * @property { number[] } values
- * @property { boolean | null } isValid
- * @property { Array<Validator> } validators
- */
+    matchColumnsToValidators() {
+        const validTickets = [this.myTicket, ...this.nearByTickets.filter(t => t.isValid)];
+        for (let column = 0; column < this.myTicket.values.length; column++) {
+            validator_checks:
+                for (let validator of Validator.list) {
+                    for (let ticket of validTickets) {
+                        if (!validator.isValid(ticket.values[column])) {
+                            continue validator_checks;
+                        }
+                    }
+                    validator.validColumns.push(column);
+                }
+        }
+    }
+
+    figureOutColumnNames() {
+        let columns = [];
+        while (Validator.list.length > 0) {
+            Validator.list.sort((v1, v2) => v1.validColumns.length - v2.validColumns.length);
+            const validator = Validator.list.shift();
+            columns.push([validator.validColumns[0], validator.fieldName]);
+            Validator.list.map(v => {
+                v.validColumns = v.validColumns.filter(n => n !== validator.validColumns[0]);
+            });
+        }
+        columns.sort((a, b) => a[0] - b[0]);
+        return columns;
+    }
+
+    calculateSolution(columns) {
+        return columns.reduce((solution, item) => {
+            const [colIndex, name] = item;
+            if (name.startsWith("departure")) {
+                solution *= this.myTicket.values[colIndex]
+            }
+            return solution;
+        }, 1);
+    }
+}
+
 class Ticket {
+    /** @type { number[] } */
     values = [];
+    /** @type { boolean | null } */
     isValid = null;
-    static validators = [];
 
     constructor(values) {
         this.values = values;
     }
 
-    getInvalidValues() {
+    validate() {
         let invalidValues = [];
         for (let value of this.values) {
-            const someValid = Ticket.validators.some(validator => validator.isValid(value));
-            if (!someValid) {
+            if (!Validator.list.some(validator => validator.isValid(value))) {
                 invalidValues.push(value);
+                this.isValid = false;
             }
         }
+        this.isValid = this.isValid === null;
         return invalidValues;
     }
 }
 
-/**
- * @property {string} fieldName
- * @property {Object} lowerRange
- * @property {number} lowerRange.min
- * @property {number} lowerRange.max
- * @property {number} upperRange.min
- * @property {number} upperRange.max
- */
 class Validator {
+    /** @type { Validator[] } */
+    static list = [];
+
+    /** @type [string} */
     fieldName;
+    /**
+     * @type {Object}
+     * @property {number} min
+     * @property {number} max
+     */
     lowerRange = {};
+    /**
+     * @type {Object}
+     * @property {number} min
+     * @property {number} max
+     */
     upperRange = {};
+    validColumns = [];
 
     /**
      * @param {Object} data
