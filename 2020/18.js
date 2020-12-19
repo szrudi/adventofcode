@@ -23,33 +23,50 @@ processLineByLine().then(data => {
     let lineResults = [];
     for (let lineNumber = 0; lineNumber < data.length; lineNumber++) {
         let line = data[lineNumber];
-        let stack = [];
-
-        for (let [index, x] of line.entries()) {
-            if (x === ")") {
-                x = stack.pop();
-            }
-            if (typeof x === "number") {
-                if (typeof stack[stack.length - 1] === "string") {
-                    let operand = stack.pop();
-                    if (operand === "+") {
-                        stack[stack.length - 1] += x;
-                    } else if (operand === "*") {
-                        stack[stack.length - 1] *= x;
-                    } else if (operand === "(") {
-                        stack.push(x);
+        let values = [];
+        let operators = []
+        // Thanks for the algorithm inspiration:
+        // https://www.cis.upenn.edu/~matuszek/cit594-2002/Assignments/5-expressions.html
+        for (let [index, next] of line.entries()) {
+            if ("number" === typeof next) {
+                values.push(next);
+            } else if ("(" === next) {
+                operators.push(next);
+            } else {
+                while (operators.length > 0) {
+                    const op = operators.pop();
+                    if (")" === next && "(" === op) {
+                        break;
+                    } else if (
+                        ["*", "+"].includes(next) &&
+                        ("+" === next && "*" === op || "(" === op)
+                    ) {
+                        operators.push(op);
+                        break;
                     }
-                } else {
-                    stack.push(x);
+                    evaluateOperator(values, op);
                 }
-            } else if (["*", "+", "("].includes(x)) {
-                stack.push(x);
+                if (")" !== next) {
+                    operators.push(next);
+                }
             }
-            // console.log(stack, "<<<", line.slice(index+1));
+            // console.log(operators, values, "<<<", line.slice(index + 1));
         }
-        lineResults[lineNumber] = stack.shift();
+        // console.log("*******************");
+        while (operators.length > 0) {
+            evaluateOperator(values, operators.pop());
+        }
+
+        lineResults[lineNumber] = values.shift();
     }
-    // 71, 51, 26, 437, 12240, 13632.
+    // 71, 51, 26, 437, 12240, 13632
+    // 231, 51, 46, 1445, 669060, 23340
     console.log(lineResults);
     console.log(lineResults.reduce((sum, v) => sum + v));
 })
+
+function evaluateOperator(values, op) {
+    const a = values.pop();
+    const b = values.pop();
+    values.push("+" === op ? a + b : a * b);
+}
