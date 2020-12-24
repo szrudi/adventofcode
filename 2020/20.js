@@ -4,7 +4,7 @@ const path = require('path');
 
 async function processLineByLine() {
     const adventDay = path.basename(__filename).split(".")[0];
-    const fileStream = fs.createReadStream(adventDay + '-input1.txt');
+    const fileStream = fs.createReadStream(adventDay + '-input.txt');
     const rl = readline.createInterface({input: fileStream, crlfDelay: Infinity});
     let data = new Map();
     let currentTileId = null;
@@ -24,11 +24,23 @@ processLineByLine().then(data => {
     area.startSearch();
     area.drawArea();
     area.drawIds();
+
+    // Part 2
+    let buffer = area.markSeaMonsters();
+    console.log(buffer.reduce((count, line) => count + line.filter(c => c === "#").length,0));
 });
 
 class Area {
     /** @type Map<string, Tile> */
     #areaMap = new Map();
+
+    /**
+     * Sea Monster:
+     * "..................#"    18
+     * "#....##....##....###"   0,5,6,11,12,17,18,19
+     * ".#..#..#..#..#..#"      1,4,7,10,13,16
+     */
+    static seaMonster = [[18], [0, 5, 6, 11, 12, 17, 18, 19], [1, 4, 7, 10, 13, 16]];
 
     /**
      * @param {Map<number, Tile>} tiles
@@ -48,7 +60,7 @@ class Area {
 
     startSearch() {
         let tile = this.tilesUnplaced.values().next().value
-        Area.debugDrawOrientations(tile);
+        // Area.debugDrawOrientations(tile);
         tile.flipped = Flipped.VERTICAL; // just to see the same as the example
         this.addTile(tile, 0, 0);
         tile.findNeighbours();
@@ -76,6 +88,79 @@ class Area {
         }
     }
 
+    markSeaMonsters() {
+        let buffer = Area.getFullMapBuffer(this.#areaMap);
+        buffer.forEach(l => console.log(l.join("")));
+        let foundMonster = false;
+        for (let flip of Object.values(Flipped)) {
+            let tempBuffer = Tile.doFlip(buffer, flip);
+            console.log("flip", flip);
+            for (let rotate of Object.values(Dir)) {
+                console.log("rotate", rotate);
+                tempBuffer = Tile.doRotate(tempBuffer, 1);
+                // tempBuffer.forEach(l => console.log(l.join(" ")));
+                for (let lineIndex = 0; lineIndex < tempBuffer.length - 2; lineIndex++) {
+                    for (let i = 0; i < tempBuffer[lineIndex].length - 20; i++) {
+                        let window = tempBuffer
+                            .slice(lineIndex, lineIndex + 3)
+                            .map(l => l.slice(i, i + 20));
+                        // console.log("check monster", lineIndex, i);
+                        // window.forEach(l => console.log(l.join("")));
+                        if (Area.checkSeaMonster(window)) {
+                            Area.markSeaMonster(tempBuffer, i, lineIndex);
+                            console.log("Sea Monster!!");
+                            foundMonster = true;
+                        }
+                    }
+                }
+                if (foundMonster) {
+                    tempBuffer.forEach(l => console.log(l.join("")));
+                    return tempBuffer
+                }
+            }
+        }
+    }
+
+    static checkSeaMonster(window) {
+        for (let i = 0; i < Area.seaMonster.length; i++) {
+            for (let j of (Area.seaMonster)[i]) {
+                if (window[i][j] !== "#") {
+                    return false
+                }
+            }
+        }
+        return true;
+    }
+
+    static markSeaMonster(buffer, x, y) {
+        for (let i = 0; i < Area.seaMonster.length; i++) {
+            for (let j of (Area.seaMonster)[i]) {
+                buffer[y + i][x + j] = "▓"
+            }
+        }
+        return buffer;
+    }
+
+    /**
+     * @param {Map<string,Tile>} map
+     * @returns {string[][]}
+     */
+    static getFullMapBuffer(map) {
+        let buffer = [];
+        let size = Area.getMapSize(map);
+        for (let y = size.y.min; y <= size.y.max; y++) {
+            for (let i = 1; i < Tile.squareSize - 1; i++) {
+                let line = [];
+                for (let x = size.x.min; x <= size.x.max; x++) {
+                    const tile = map.get(Area.coordinateString(x, y));
+                    line.push(...(tile.orientedTileLines[i].slice(1, -1)));
+                }
+                buffer.push(line);
+            }
+        }
+        return buffer;
+    }
+
     drawArea() {
         Area.drawMap(this.#areaMap);
     }
@@ -88,7 +173,7 @@ class Area {
         let size = this.getMapSize(map);
         const squareSize = onlyIds ? 1 : Tile.squareSize;
         const border = onlyIds ? " " : " ";
-        const padding = onlyIds ? "" : " ";
+        const padding = onlyIds ? "" : "";
         for (let y = size.y.min; y <= size.y.max; y++) {
             for (let i = 0; i < squareSize; i++) {
                 let line = [];
@@ -109,7 +194,7 @@ class Area {
                 }
                 console.log(line.join(border));
             }
-            if (padding) {
+            if (!onlyIds) {
                 console.log("");
             }
         }
@@ -289,21 +374,26 @@ class Tile {
     }
 
     static doFlip(lines, flip) {
+        if (flip === Flipped.ORIGINAL) {
+            return Array.from(lines);
+        }
+        const height = lines.length;
+        const width = lines[0].length;
         let axis = {
             x: {
-                min: flip === Flipped.HORIZONTAL ? Tile.squareSize - 1 : 0,
+                min: flip === Flipped.HORIZONTAL ? width - 1 : 0,
                 increment: flip === Flipped.HORIZONTAL ? -1 : +1,
             },
             y: {
-                min: flip === Flipped.VERTICAL ? Tile.squareSize - 1 : 0,
+                min: flip === Flipped.VERTICAL ? height - 1 : 0,
                 increment: flip === Flipped.VERTICAL ? -1 : +1,
             },
         };
 
         let buffer = [];
-        for (let i = 0; i < Tile.squareSize; i++) {
+        for (let i = 0; i < height; i++) {
             let y = axis.y.min + i * axis.y.increment;
-            for (let j = 0; j < Tile.squareSize; j++) {
+            for (let j = 0; j < width; j++) {
                 let x = axis.x.min + j * axis.x.increment;
                 if (buffer[i] === undefined) {
                     buffer[i] = [];
@@ -315,13 +405,14 @@ class Tile {
     }
 
     static doRotate(lines, times) {
+        let buffer = Array.from(lines);
         for (let i = 0; i < times; i++) {
             // thx to https://stackoverflow.com/a/58668351
-            lines = lines[0].map(
+            buffer = buffer[0].map(
                 (val, index) =>
-                    lines.map(row => row[index]).reverse());
+                    buffer.map(row => row[index]).reverse());
         }
-        return lines;
+        return buffer;
     }
 
     draw() {
