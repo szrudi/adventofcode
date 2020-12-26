@@ -15,7 +15,7 @@ async function processLineByLine() {
         // console.log(found.groups);
         let command = {
             type: found.groups.type,
-            address: parseInt(found.groups.address),
+            address: parseInt(found.groups.address) || null,
             value: found.groups.type === "mem" ? parseInt(found.groups.value) : found.groups.value,
         };
         data.push(command);
@@ -24,26 +24,64 @@ async function processLineByLine() {
 }
 
 processLineByLine().then(program => {
-    let memory = new Map();
+    let memoryV1 = new Map();
+    let memoryV2 = new Map();
     const maxLength = 36;
     let mask = new Array(maxLength).fill(0).join("");
     // console.log(program);
     for (let command of program) {
         if (command.type === "mask") {
             mask = command.value;
-        } else {
-            const binaryValue = command.value.toString(2).padStart(maxLength,"0");
-            let maskedValue = new Array(maxLength).fill(0);
-            for (let i = maxLength-1; i >= 0; i--) {
-                maskedValue[i] = parseInt(mask[i] === "X" ? binaryValue[i] : mask[i]);
+            continue;
+        }
+
+        const binaryValue = toBinaryArray(command.value, maxLength);
+        const binaryAddress = toBinaryArray(command.address, maxLength);
+        let memoryAddresses = [new Array(maxLength).fill(0)];
+        for (let i = maxLength - 1; i >= 0; i--) {
+            if (mask[i] === "X") {
+                let duplicates = JSON.parse(JSON.stringify(memoryAddresses));
+                memoryAddresses.map(a => a[i] = 1);
+                duplicates.map(a => a[i] = 0);
+                memoryAddresses.push(...duplicates);
+            } else {
+                binaryValue[i] = mask[i];
+                if (mask[i] === "1") {
+                    memoryAddresses.map(a => a[i] = 1);
+                } else {
+                    memoryAddresses.map(a => a[i] = binaryAddress[i]);
+                }
             }
-            memory.set(command.address, maskedValue);
+        }
+        memoryV1.set(command.address, parseInt(binaryValue.join(""), 2));
+        for (let memoryAddress of memoryAddresses) {
+            memoryV2.set(parseInt(memoryAddress.join(""), 2), command.value);
         }
     }
-    // console.log(memory);
-    let sum = 0;
-    for (let memoryElement of memory.values()) {
-        sum += parseInt(memoryElement.join(""),2)
-    }
-    console.log(sum);
+
+    // console.log(memoryV1);
+    let sumV1 = [...memoryV1.values()].reduce((sum, v) => sum + v, 0);
+    console.log(sumV1);
+
+    // console.log(memoryV2);
+    let sumV2 = [...memoryV2.values()].reduce((sum, v) => sum + v, 0);
+    console.log(sumV2);
 });
+
+/**
+ * @param {number} value
+ * @param {number} maxLength
+ */
+function toBinaryArray(value, maxLength) {
+    return value
+        .toString(2)
+        .padStart(maxLength, "0")
+        .slice(0, maxLength)
+        .split("")
+        .map(v => parseInt(v))
+        ;
+}
+
+
+
+
